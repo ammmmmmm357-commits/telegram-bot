@@ -71,6 +71,11 @@ def sync_extract_info(url: str) -> Dict[str, Any]:
         logger.error(f"yt-dlp error: {e}")
         return {'success': False, 'error': f'حدث خطأ: {str(e)[:50]}'}
 
+# --- الأمر الجديد لفحص استجابة البوت ---
+async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """أمر اختبار لمعرفة إن كان البوت يعمل"""
+    await update.message.reply_text("🏓 Pong! البوت يعمل ومتصل بخوادم تيليجرام.")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 **مرحباً بك في بوت تحميل YouTube!**\n\n"
@@ -153,6 +158,7 @@ def download_sync(url, opts, filename):
 def main():
     app = Application.builder().token(Config.BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("ping", ping))  # 👈 تم إضافة هذا الأمر للاختبار
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_youtube_url))
     app.add_handler(CallbackQueryHandler(download_buttons, pattern="^(v|a)\|.+"))
     logger.info("🚀 تشغيل بوت التحميل!")
