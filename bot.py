@@ -4,95 +4,94 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 BOT_TOKEN = "8333898818:AAHLZP7Vd37rAeDp_3ZpoIFIEGHp5TIxHC4"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
     keyboard = [
-        [InlineKeyboardButton("📥 Download Video", callback_data="video")],
-        [InlineKeyboardButton("🎵 Download Audio", callback_data="audio")],
-        [InlineKeyboardButton("📷 Download Thumbnail", callback_data="thumbnail")],
-        [InlineKeyboardButton("ℹ️ Info", callback_data="info")],
+        [
+            InlineKeyboardButton("Download Video", callback_data="download_video"),
+            InlineKeyboardButton("Download Audio", callback_data="download_audio")
+        ],
+        [
+            InlineKeyboardButton("Get Info", callback_data="get_info"),
+            InlineKeyboardButton("Help", callback_data="help")
+        ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "🎬 *YouTube Downloader Bot*\n\n"
-        "Choose what you want to do:\n\n"
-        "📥 Download full videos\n"
-        "🎵 Extract audio (MP3)\n"
-        "📷 Get thumbnail image\n"
-        "ℹ️ Get video info\n\n"
-        "Just send a YouTube link!",
-        reply_markup=reply_markup,
-        parse_mode="Markdown"
+        f"Welcome {user.first_name}!\n\n"
+        "YouTube Downloader Bot\n\n"
+        "Choose an option or send a YouTube link",
+        reply_markup=reply_markup
     )
 
-async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    choice = query.data
+    action = query.data
     
-    if choice == "video":
-        await query.edit_message_text(text="📥 Send me a YouTube link to download the video")
-    elif choice == "audio":
-        await query.edit_message_text(text="🎵 Send me a YouTube link to download as MP3")
-    elif choice == "thumbnail":
-        await query.edit_message_text(text="📷 Send me a YouTube link to get the thumbnail")
-    elif choice == "info":
-        await query.edit_message_text(text="ℹ️ Send me a YouTube link to get video information")
+    messages = {
+        "download_video": "Send a YouTube link to download video",
+        "download_audio": "Send a YouTube link to download as MP3",
+        "get_info": "Send a YouTube link to get video information",
+        "help": "Send any YouTube link\n\nFormats:\nvideo, audio, thumbnail\n\nWe support: youtube.com, youtu.be"
+    }
     
-    context.user_data['mode'] = choice
+    await query.edit_message_text(text=messages.get(action, "Unknown"))
+    context.user_data['mode'] = action
 
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
-    mode = context.user_data.get('mode', 'video')
+    mode = context.user_data.get('mode', 'download_video')
     
-    if "youtu" not in url:
-        await update.message.reply_text("❌ Please send a valid YouTube link")
+    if "youtu" not in url and "youtube" not in url:
+        await update.message.reply_text("Invalid YouTube link. Please send a valid link")
         return
     
-    await update.message.reply_text("⏳ Processing... Please wait")
-    
     try:
-        if mode == "video":
-            await update.message.reply_text(
-                f"✅ Video Ready!\n\n"
-                f"Link: {url}\n"
-                f"Quality: 1080p\n\n"
-                f"Download from: https://www.y2mate.com/download-youtube-video/{url.split('v=')[-1]}"
-            )
-        elif mode == "audio":
-            await update.message.reply_text(
-                f"✅ Audio Ready!\n\n"
-                f"Format: MP3\n"
-                f"Download from: https://www.y2mate.com/download-youtube-video/{url.split('v=')[-1]}"
-            )
-        elif mode == "thumbnail":
-            video_id = url.split('v=')[-1].split('&')[0]
-            await update.message.reply_text(
-                f"✅ Thumbnail Ready!\n\n"
-                f"
-
-![Thumbnail](https://img.youtube.com/vi/{video_id}/maxresdefault.jpg)
-
-"
-            )
-        elif mode == "info":
-            video_id = url.split('v=')[-1].split('&')[0]
-            await update.message.reply_text(
-                f"ℹ️ Video Info:\n\n"
-                f"Video ID: {video_id}\n"
-                f"Watch: {url}\n\n"
-                f"Go to y2mate.com and paste the link to see full info"
-            )
+        video_id = url.split("v=")[-1].split("&")[0]
+        
+        if "youtu.be" in url:
+            video_id = url.split("/")[-1].split("?")[0]
+        
+        if mode == "download_video":
+            response = f"Video Download Link\n\nhttps://www.y2mate.com/download-youtube-video/{video_id}"
+        elif mode == "download_audio":
+            response = f"Audio (MP3) Download Link\n\nhttps://www.y2mate.com/download-youtube-video/{video_id}"
+        elif mode == "get_info":
+            response = f"Video Information\n\nID: {video_id}\n\nWatch: {url}\n\nVisit y2mate.com for details"
+        else:
+            response = f"Download Link\n\nhttps://www.y2mate.com/download-youtube-video/{video_id}"
+        
+        await update.message.reply_text(response)
+    
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: Try another link")
+        await update.message.reply_text("Error processing link. Please try again")
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_text = (
+        "YouTube Downloader Bot\n\n"
+        "Commands:\n"
+        "/start - Start the bot\n"
+        "/help - Show this message\n\n"
+        "How to use:\n"
+        "1. Send a YouTube link\n"
+        "2. Choose format (video/audio)\n"
+        "3. Get download link\n\n"
+        "Supported formats:\n"
+        "MP4, MP3, WebM, etc"
+    )
+    await update.message.reply_text(help_text)
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_click))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     
+    print("Bot started successfully!")
     app.run_polling()
 
 if __name__ == '__main__':
