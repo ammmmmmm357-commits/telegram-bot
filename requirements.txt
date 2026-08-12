@@ -1,3 +1,2 @@
-python-telegram-bot
-yt-dlp
-python-dotenv
+python-telegram-bot==20.7
+yt-dlp==2025.2.19
