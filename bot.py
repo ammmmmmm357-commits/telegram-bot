@@ -16,11 +16,8 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 
-# ==========================================
-# 1. الإعدادات
-# ==========================================
 class Config:
-    BOT_TOKEN = os.getenv("8981342497:AAEyZOwjTGal5McTGByGID1gerrezfbTQ3s")
+    BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     TIMEOUT = 45
     if not BOT_TOKEN:
         raise ValueError("❌ خطأ: لم يتم العثور على TELEGRAM_BOT_TOKEN!")
@@ -32,9 +29,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ==========================================
-# 2. دوال المساعدة
-# ==========================================
 def is_youtube_url(url: str) -> bool:
     return bool(re.match(r'(https?://)?(www\.)?(youtube\.com|youtu\.be|youtube\.com/shorts)/.+', url))
 
@@ -54,16 +48,12 @@ def sync_extract_info(url: str) -> Dict[str, Any]:
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            
-            video_formats = []
-            audio_formats = []
-            
+            video_formats, audio_formats = [], []
             for f in info.get('formats', []):
                 if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
                     video_formats.append(f)
                 elif f.get('vcodec') == 'none' and f.get('acodec') != 'none':
                     audio_formats.append(f)
-                    
             return {
                 'success': True,
                 'title': info.get('title', 'عنوان غير معروف'),
@@ -81,9 +71,6 @@ def sync_extract_info(url: str) -> Dict[str, Any]:
         logger.error(f"yt-dlp error: {e}")
         return {'success': False, 'error': f'حدث خطأ: {str(e)[:50]}'}
 
-# ==========================================
-# 3. معالجات البوت
-# ==========================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 **مرحباً بك في بوت تحميل YouTube!**\n\n"
@@ -98,15 +85,12 @@ async def handle_youtube_url(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not is_youtube_url(text):
         await update.message.reply_text("❌ الرابط غير صحيح، يرجى إرسال رابط يوتيوب صالح.")
         return
-
     msg = await update.message.reply_text("⏳ جاري استخراج معلومات الفيديو...")
-    
     try:
         info = await async_extract_info(text)
         if not info['success']:
             await msg.edit_text(f"❌ {info['error']}")
             return
-
         caption = (
             f"**{info['title']}**\n\n"
             f"👤 **القناة:** `{info['uploader']}`\n"
@@ -114,14 +98,11 @@ async def handle_youtube_url(update: Update, context: ContextTypes.DEFAULT_TYPE)
             f"👁 **المشاهدات:** `{info['views']}`\n\n"
             f"_اختر نوع التحميل من الأسفل:_"
         )
-
         keyboard = []
         if info['video_formats']:
             keyboard.append([InlineKeyboardButton("🎬 مقطع فيديو", callback_data=f"v|{info['url']}")])
         if info['audio_formats']:
             keyboard.append([InlineKeyboardButton("🎵 ملف صوتي", callback_data=f"a|{info['url']}")])
-
-        # إرسال الرسالة مع الصورة
         if info['thumbnail']:
             await msg.delete()
             await update.message.reply_photo(
@@ -132,44 +113,33 @@ async def handle_youtube_url(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
         else:
             await msg.edit_text(caption, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup(keyboard))
-
     except Exception as e:
         logger.error(f"Error: {e}")
         await msg.edit_text("💥 حدث خطأ غير متوقع.")
 
-# ==========================================
-# 4. معالج أزرار التحميل
-# ==========================================
 async def download_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data.split('|')
     dl_type = data[0]
     dl_url = data[1]
-    
     await query.edit_message_text("⏳ جاري تحميل الملف، يرجى الانتظار...")
-    
     try:
         loop = asyncio.get_running_loop()
         opts = {'quiet': True, 'socket_timeout': 60}
-        
         if dl_type == "v":
             opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]'
             file_name = f"video_{int(asyncio.get_event_loop().time())}.mp4"
         elif dl_type == "a":
             opts['format'] = 'bestaudio[ext=m4a]'
             file_name = f"audio_{int(asyncio.get_event_loop().time())}.m4a"
-
         filepath = await loop.run_in_executor(None, download_sync, dl_url, opts, file_name)
-        
         if dl_type == "v":
             await query.message.reply_video(video=open(filepath, 'rb'), caption="🎬 تم تحميل المقطع بنجاح!")
         elif dl_type == "a":
             await query.message.reply_audio(audio=open(filepath, 'rb'), caption="🎵 تم تحميل الملف الصوتي!")
-            
         await query.edit_message_text("✅ تم إرسال الملف بنجاح!")
         os.remove(filepath)
-        
     except Exception as e:
         logger.error(f"Download error: {e}")
         await query.edit_message_text("❌ حدث خطأ أثناء التحميل، قد يكون حجم الملف كبيراً جداً.")
@@ -180,16 +150,12 @@ def download_sync(url, opts, filename):
         ydl.download([url])
         return filename
 
-# ==========================================
-# 5. التشغيل الرئيسي
-# ==========================================
 def main():
     app = Application.builder().token(Config.BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_youtube_url))
     app.add_handler(CallbackQueryHandler(download_buttons, pattern="^(v|a)\|.+"))
-    
-    logger.info("🚀 تشغيل بوت التحميل (بدون بصمة)!")
+    logger.info("🚀 تشغيل بوت التحميل!")
     app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 if __name__ == "__main__":
