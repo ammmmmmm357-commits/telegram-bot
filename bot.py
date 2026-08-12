@@ -20,7 +20,7 @@ from telegram.constants import ParseMode
 # 1. الإعدادات
 # ==========================================
 class Config:
-    BOT_TOKEN = os.getenv("8333898818:AAFaM7glgRRv8nTN3RrHT6c_OYBCAYNjx5I")
+    BOT_TOKEN = os.getenv("8981342497:AAEyZOwjTGal5McTGByGID1gerrezfbTQ3s")
     TIMEOUT = 45
     if not BOT_TOKEN:
         raise ValueError("❌ خطأ: لم يتم العثور على TELEGRAM_BOT_TOKEN!")
