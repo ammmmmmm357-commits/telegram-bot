@@ -17,6 +17,7 @@ from telegram.error import TelegramError
 import yt_dlp
 
 # ============ Configuration ============
+# ✅ تم التصحيح هنا: وضعنا اسم المتغير الذي أضفته في Railway
 BOT_TOKEN = os.getenv("8333898818:AAFaM7glgRRv8nTN3RrHT6c_OYBCAYNjx5I")
 
 # Configure Logging
