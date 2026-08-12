@@ -1,11 +1,11 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-import requests
+from pytube import YouTube
 
 BOT_TOKEN = "8333898818:AAGIpDv5KfhdlBtkemWvLRV1vulJVlRR-g0"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello! Send me a YouTube link and I'll get the download link for you")
+    await update.message.reply_text("Hello! Send me a YouTube link to download")
 
 async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
@@ -17,22 +17,27 @@ async def download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("⏳ Processing... Please wait")
     
     try:
-        # Use free API to get download link
-        api_url = f"https://www.y2mate.com/api/ajax/search"
+        yt = YouTube(url)
         
-        # Alternative: Simple method - send the URL formatted
-        video_id = url.split("v=")[-1].split("&")[0]
+        # Get best quality
+        stream = yt.streams.get_highest_resolution()
         
-        download_link = f"https://www.y2mate.com/download-youtube-video/{video_id}"
+        info = f"""
+✅ Title: {yt.title}
+📏 Duration: {yt.length // 60} minutes
+👁 Views: {yt.views:,}
+📊 Quality: {stream.resolution}
+💾 Size: ~{stream.filesize // (1024*1024)} MB
+
+Download link ready!
+Click on the link below to download from y2mate or similar service:
+https://www.y2mate.com/download-youtube-video/{url.split('v=')[-1]}
+        """
         
-        await update.message.reply_text(
-            f"✅ Download link ready!\n\n"
-            f"Click here to download: {download_link}\n\n"
-            f"Choose quality and format on the website"
-        )
+        await update.message.reply_text(info)
     
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: {str(e)}")
+        await update.message.reply_text(f"❌ Error: Try another link")
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
