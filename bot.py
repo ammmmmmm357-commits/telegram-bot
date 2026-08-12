@@ -17,7 +17,7 @@ from telegram.error import TelegramError
 import yt_dlp
 
 # ============ Configuration ============
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+BOT_TOKEN = os.getenv("8333898818:AAFaM7glgRRv8nTN3RrHT6c_OYBCAYNjx5I")
 if not BOT_TOKEN:
     raise ValueError("❌ TELEGRAM_BOT_TOKEN environment variable not set!")
 
