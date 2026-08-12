@@ -34,7 +34,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "download_video": "Send a YouTube link to download video",
         "download_audio": "Send a YouTube link to download as MP3",
         "get_info": "Send a YouTube link to get video information",
-        "help": "Send any YouTube link\n\nFormats:\nvideo, audio, thumbnail\n\nWe support: youtube.com, youtu.be"
+        "help": "Send any YouTube link\n\nFormats: video, audio, thumbnail"
     }
     
     await query.edit_message_text(text=messages.get(action, "Unknown"))
@@ -45,41 +45,36 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data.get('mode', 'download_video')
     
     if "youtu" not in url and "youtube" not in url:
-        await update.message.reply_text("Invalid YouTube link. Please send a valid link")
+        await update.message.reply_text("Invalid YouTube link")
         return
     
-    try:
+    video_id = ""
+    if "v=" in url:
         video_id = url.split("v=")[-1].split("&")[0]
-        
-        if "youtu.be" in url:
-            video_id = url.split("/")[-1].split("?")[0]
-        
-        if mode == "download_video":
-            response = f"Video Download Link\n\nhttps://www.y2mate.com/download-youtube-video/{video_id}"
-        elif mode == "download_audio":
-            response = f"Audio (MP3) Download Link\n\nhttps://www.y2mate.com/download-youtube-video/{video_id}"
-        elif mode == "get_info":
-            response = f"Video Information\n\nID: {video_id}\n\nWatch: {url}\n\nVisit y2mate.com for details"
-        else:
-            response = f"Download Link\n\nhttps://www.y2mate.com/download-youtube-video/{video_id}"
-        
-        await update.message.reply_text(response)
+    elif "youtu.be" in url:
+        video_id = url.split("/")[-1].split("?")[0]
     
-    except Exception as e:
-        await update.message.reply_text("Error processing link. Please try again")
+    if not video_id:
+        await update.message.reply_text("Could not extract video ID")
+        return
+    
+    download_url = f"https://www.y2mate.com/download-youtube-video/{video_id}"
+    
+    if mode == "download_video":
+        await update.message.reply_text(f"Video Download:\n{download_url}")
+    elif mode == "download_audio":
+        await update.message.reply_text(f"Audio (MP3):\n{download_url}")
+    elif mode == "get_info":
+        await update.message.reply_text(f"Video ID: {video_id}\n\n{download_url}")
+    else:
+        await update.message.reply_text(download_url)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         "YouTube Downloader Bot\n\n"
-        "Commands:\n"
-        "/start - Start the bot\n"
-        "/help - Show this message\n\n"
-        "How to use:\n"
-        "1. Send a YouTube link\n"
-        "2. Choose format (video/audio)\n"
-        "3. Get download link\n\n"
-        "Supported formats:\n"
-        "MP4, MP3, WebM, etc"
+        "/start - Start\n"
+        "/help - Help\n\n"
+        "Send YouTube link to download"
     )
     await update.message.reply_text(help_text)
 
@@ -91,7 +86,6 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     
-    print("Bot started successfully!")
     app.run_polling()
 
 if __name__ == '__main__':
