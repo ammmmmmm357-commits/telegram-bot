@@ -3,7 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 import yt_dlp
 
-BOT_TOKEN = "8333898818:AAHLZP7Vd37rAeDp_3ZpoIFIEGHp5TIxHC4"
+BOT_TOKEN = "8333898818:8333898818:AAFaM7glgRRv8nTN3RrHT6c_OYBCAYNjx5I"
 
 logging.basicConfig(level=logging.INFO)
 
